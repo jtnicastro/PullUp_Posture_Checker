@@ -330,8 +330,8 @@ if __name__ == "__main__":
         video_output.write(image)
         # Customize display window and display output
         cv2.namedWindow('Pull Up Posture Checker', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('Pull Up Posture Checker', (w-220,h))
-        cv2.moveWindow('Pull Up Posture Checker', 150,-75)
+        cv2.resizeWindow('Pull Up Posture Checker', (w,h))
+        cv2.moveWindow('Pull Up Posture Checker', 150,75)
         cv2.imshow('Pull Up Posture Checker', image)
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
