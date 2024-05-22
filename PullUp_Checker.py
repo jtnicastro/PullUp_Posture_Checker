@@ -6,34 +6,33 @@ import numpy as np
 
 # ========== CALCULATIONS ========== #
 
-# Calculate distance
+# Calculate distance between two points
 def findDistance(x1, y1, x2, y2):
     dist = m.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     return dist
 
-# Calculate vector
+# Calculate vector from point x1 to point x2
 def findVector(x1, x2):
     vect = x2 - x1
     return vect
 
-# Calculate angle
+# Calculate the angle between two vectors
 def findAngle(x1, y1, x2, y2):
     theta = m.acos((x1 * x2 + y1 * y2) / (m.sqrt((x1**2)+(y1**2))
                 *m.sqrt(((x2)**2)+((y2)**2))))
     degree = int(180 / m.pi) * theta
     return degree
 
-# Calculate closeness
+# Determine if two values are within a certain range of each other
 def inRange(a, b, rel_tol=.02, abs_tol=0.0):
     return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
-# Check if shoulders are in range
-# adds all shoulder heights to array and compares current height with minimum height
+# Check if the shoulder height is within an acceptable range
 def checkShoulder(shldr_height, array):
     current_min = np.min(array)
     return inRange(shldr_height, current_min, rel_tol=0.1)
 
-# Calculate percent elevated
+# Calculate the percentage the shoulder is elevated
 def percentElevated(shldr_height, array):
     percent = ((shldr_height - np.min(array))/np.min(array)*100)
     return percent
@@ -57,7 +56,7 @@ full_range = True
 reps = 0
 prev_reps = 0
 
-# Colors
+# Define colors
 green = (110, 220, 0)
 blue = (255, 127, 0)
 red = (50, 50, 255)
@@ -65,30 +64,28 @@ white = (248, 248, 255)
 black = (0, 0, 0)
 purple = (139, 61, 72)
 
-# Font
+# Define font
 font = cv2.FONT_HERSHEY_SIMPLEX
 
-# Colors for Lines
+# Initialize colors for lines
 arm_color = green
 body_color = blue
 r_shldr_color = green
 l_shldr_color = green
 
-# Create Array for Shoulder Height
+# Create arrays for storing shoulder heights and arm angles
 r_height_arr = np.array([])
 l_height_arr = np.array([])
-
-# Creates Array for Arm Angles
 r_angle_arr = np.array([])
 l_angle_arr = np.array([])
 
-# Creates Array for timestamps
+# Create arrays for timestamps
 uneven_arms_time = np.array([])
 r_shldr_time = np.array([])
 l_shldr_time = np.array([])
 full_range_time = np.array([])
 
-# Initialize mediapipe pose class
+# Initialize Mediapipe pose class
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
@@ -97,12 +94,13 @@ if __name__ == "__main__":
     # Input video to be captured
     file_name = 'test.mp4'
     cap = cv2.VideoCapture(file_name)
+    
     # Aquire video data
-    fps = int(cap.get(cv2.CAP_PROP_FPS))                                                       # framerate of video
+    fps = int(cap.get(cv2.CAP_PROP_FPS))                                                       # Framerate of video
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    frame_size = (width, height)                                                               # size of video frame
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')                                                   # write output as MP4
+    frame_size = (width, height)                                                               # Size of video frame
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')                                                   # Write output as MP4
 
     # Writes output video with determined parameters
     video_output = cv2.VideoWriter('output.mp4', fourcc, fps, frame_size)
@@ -116,19 +114,25 @@ if __name__ == "__main__":
         if not success:
             print("Empty Camera Frame")
             break
+        
         cframe = cap.get(cv2.CAP_PROP_POS_FRAMES)
         tframe = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         fps = cap.get(cv2.CAP_PROP_FPS)
         time = cframe / fps
-        # Used to obtain actual values instead of normalized x and y coordinates
+        
+        # Obtain actual values instead of normalized coordinates
         h, w = image.shape[:2]
+
         # Convert BGR image to RGB before processing
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        # Process image
+
+        # Process image with Mediapipe
         result = pose.process(image)
+
         # Convert image back to BGR
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        # Used to shorten SDK public class syntax
+
+        # Shortcut for pose landmarks
         lm = result.pose_landmarks
         lmPose = mp_pose.PoseLandmark
 
@@ -161,41 +165,44 @@ if __name__ == "__main__":
         l_hip_y = int(lm.landmark[lmPose.LEFT_HIP].y * h)
 
         # ========== CALCULATE DISTANCE ========== #
-        # between hips
+        # Distance between hips
         hip_dist = findDistance(r_hip_x, r_hip_y, l_hip_x, l_hip_y)
-        # between shoulders
+        # Distance between shoulders
         shldr_dist = findDistance(r_shldr_x, r_shldr_y, l_shldr_x, l_shldr_y)
-        # between right shoulder and right hip
+        # Distance between right shoulder and right hip
         r_shldr_height = findDistance(r_shldr_x, r_shldr_y, r_hip_x, r_hip_y)
-        # between left shoulder and left hip
+        # Distance between left shoulder and left hip
         l_shldr_height = findDistance(l_shldr_x, l_shldr_y, l_hip_x, l_hip_y)
-        # adds shoulder height to array
+        
+        # Add shoulder heights to array
         r_height_arr = np.append(r_height_arr, r_shldr_height)
         l_height_arr = np.append(l_height_arr, l_shldr_height)
 
         # ========== CALCULATE VECTORS ========== #
-        # vector from shoulder to elbow
+        # Vector from shoulder to elbow
         r_up_arm_vect_x = findVector(r_elbow_x, r_shldr_x)
         r_up_arm_vect_y = findVector(r_elbow_y, r_shldr_y)
         l_up_arm_vect_x = findVector(l_elbow_x, l_shldr_x)
         l_up_arm_vect_y = findVector(l_elbow_y, l_shldr_y)
-        # vector from elbow to wrist
+        
+        # Vector from elbow to wrist
         r_lw_arm_vect_x = findVector(r_elbow_x, r_wrist_x)
         r_lw_arm_vect_y = findVector(r_elbow_y, r_wrist_y)
         l_lw_arm_vect_x = findVector(l_elbow_x, l_wrist_x)
         l_lw_arm_vect_y = findVector(l_elbow_y, l_wrist_y)
 
         # ========== CALCULATE ANGLES ========== #
-        # right arm
+        # Right arm
         r_arm_angle = findAngle(r_lw_arm_vect_x, r_lw_arm_vect_y, r_up_arm_vect_x, r_up_arm_vect_y)
-        # left arm
+        # Left arm
         l_arm_angle = findAngle(l_lw_arm_vect_x, l_lw_arm_vect_y, l_up_arm_vect_x, l_up_arm_vect_y)
-        # adds arm angles to array
+        
+        # Add arm angles to array
         r_angle_arr = np.append(r_angle_arr, r_arm_angle)
         l_angle_arr = np.append(l_angle_arr, l_arm_angle)
 
         # ========== DISPLAY TEXT ========== #
-        # text was placed twice with thicker black font underneath to outline text
+        # Display arm angles near elbows
         cv2.putText(image, str(int(r_arm_angle)), (r_elbow_x + 30, r_elbow_y + 20), font, 1, black, 5)
         cv2.putText(image, 'o', (r_elbow_x + 90, r_elbow_y + 6), font, .6, black, 5)
         cv2.putText(image, str(int(r_arm_angle)), (r_elbow_x + 30, r_elbow_y + 20), font, 1, arm_color, 2)
@@ -328,6 +335,7 @@ if __name__ == "__main__":
 # ========================= WRITE OUTPUT VIDEO ======================================================================= #
         # Write output frames
         video_output.write(image)
+        
         # Customize display window and display output
         cv2.namedWindow('Pull Up Posture Checker', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('Pull Up Posture Checker', (w,h))
@@ -335,6 +343,7 @@ if __name__ == "__main__":
         cv2.imshow('Pull Up Posture Checker', image)
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
+
 # Closes display window
 cap.release()
 cv2.destroyAllWindows()
