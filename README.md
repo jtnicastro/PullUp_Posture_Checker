@@ -53,7 +53,11 @@ This project is a Python script that uses OpenCV and MediaPipe to process a vide
 + Alerts: Displays warnings for uneven arm lifts and shoulder elevations.
 
 ## Example Outputs
+**Example of correct form:**
 
+https://github.com/jtnicastro/PullUp_Posture_Checker/assets/78828629/da60290c-aee1-480f-8e74-36055bacee92
+
+Note: if sample output video is not playing, you can still view it by opening the file **'output_right.mp4'** in this repository along with a sample output for incorrect form called **'output_wrong.mp4'**
 
 ## Contributing
 
