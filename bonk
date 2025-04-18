@@ -1,0 +1,72 @@
+from lightfm import LightFM
+from lightfm.data import Dataset
+import numpy as np
+
+# Step 1: Create Dataset
+dataset = Dataset()
+
+# Fit mappings
+user_ids = final_df['user_id'].unique()
+item_ids = final_df['camera_id'].unique()
+
+# Features (all one-hot columns)
+item_features_list = [col for col in final_df.columns if col.startswith('tag_') or col.startswith('loc_')]
+user_features_list = [col for col in final_df.columns if col.startswith('device_')]
+
+dataset.fit(users=user_ids, items=item_ids,
+            item_features=item_features_list,
+            user_features=user_features_list)
+
+# Step 2: Build interaction matrix
+(interactions, weights) = dataset.build_interactions([
+    (row['user_id'], row['camera_id'], row['interaction_score'])
+    for _, row in final_df.iterrows()
+])
+
+# Step 3: Build user/item features matrix
+item_features = dataset.build_item_features([
+    (row['camera_id'], [feat for feat in item_features_list if row.get(feat, 0) == 1])
+    for _, row in final_df.iterrows()
+])
+
+user_features = dataset.build_user_features([
+    (row['user_id'], [feat for feat in user_features_list if row.get(feat, 0) == 1])
+    for _, row in final_df.iterrows()
+])
+
+
+model = LightFM(loss='warp')  # WARP = Weighted Approximate-Rank Pairwise (good for implicit data)
+
+model.fit(interactions,
+          item_features=item_features,
+          user_features=user_features,
+          epochs=10,
+          num_threads=4)
+
+def recommend_lightfm(user_id, model, interactions, dataset, item_features, user_features, n=5):
+    # Map IDs to internal IDs
+    user_internal_id = dataset.mapping()[0][user_id]
+    item_id_map = dataset.mapping()[2]
+    item_internal_ids = list(item_id_map.values())
+
+    # Predict scores for all items
+    scores = model.predict(user_internal_id, item_internal_ids,
+                           item_features=item_features,
+                           user_features=user_features)
+
+    # Rank scores
+    top_items = np.argsort(-scores)[:n]
+
+    # Map back to real camera_ids
+    reverse_item_map = {v: k for k, v in item_id_map.items()}
+    recommended_camera_ids = [reverse_item_map[i] for i in top_items]
+
+    return recommended_camera_ids
+
+# Example
+recommend_lightfm(user_id=2, model=model,
+                  interactions=interactions,
+                  dataset=dataset,
+                  item_features=item_features,
+                  user_features=user_features,
+                  n=5)
